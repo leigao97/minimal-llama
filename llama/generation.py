@@ -10,11 +10,11 @@ from typing import List, Literal, Optional, Tuple, TypedDict
 
 import torch
 import torch.nn.functional as F
-from fairscale.nn.model_parallel.initialize import (
-    get_model_parallel_rank,
-    initialize_model_parallel,
-    model_parallel_is_initialized,
-)
+# from fairscale.nn.model_parallel.initialize import (
+#     get_model_parallel_rank,
+#     initialize_model_parallel,
+#     model_parallel_is_initialized,
+# )
 
 from llama.model import ModelArgs, Transformer
 from llama.tokenizer import Tokenizer
@@ -81,30 +81,30 @@ class Llama:
             and loads the pre-trained model and tokenizer.
 
         """
-        if not torch.distributed.is_initialized():
-            torch.distributed.init_process_group("nccl")
-        if not model_parallel_is_initialized():
-            if model_parallel_size is None:
-                model_parallel_size = int(os.environ.get("WORLD_SIZE", 1))
-            initialize_model_parallel(model_parallel_size)
+        # if not torch.distributed.is_initialized():
+        #     torch.distributed.init_process_group("nccl")
+        # if not model_parallel_is_initialized():
+        #     if model_parallel_size is None:
+        #         model_parallel_size = int(os.environ.get("WORLD_SIZE", 1))
+        #     initialize_model_parallel(model_parallel_size)
 
-        local_rank = int(os.environ.get("LOCAL_RANK", 0))
-        torch.cuda.set_device(local_rank)
+        # local_rank = int(os.environ.get("LOCAL_RANK", 0))
+        # torch.cuda.set_device(local_rank)
 
         # seed must be the same in all processes
         torch.manual_seed(seed)
 
-        if local_rank > 0:
-            sys.stdout = open(os.devnull, "w")
+        # if local_rank > 0:
+        #     sys.stdout = open(os.devnull, "w")
 
         start_time = time.time()
-        checkpoints = sorted(Path(ckpt_dir).glob("*.pth"))
-        assert len(checkpoints) > 0, f"no checkpoint files found in {ckpt_dir}"
-        assert model_parallel_size == len(
-            checkpoints
-        ), f"Loading a checkpoint for MP={len(checkpoints)} but world size is {model_parallel_size}"
-        ckpt_path = checkpoints[get_model_parallel_rank()]
-        checkpoint = torch.load(ckpt_path, map_location="cpu")
+        # checkpoints = sorted(Path(ckpt_dir).glob("*.pth"))
+        # assert len(checkpoints) > 0, f"no checkpoint files found in {ckpt_dir}"
+        # assert model_parallel_size == len(
+        #     checkpoints
+        # ), f"Loading a checkpoint for MP={len(checkpoints)} but world size is {model_parallel_size}"
+        # ckpt_path = checkpoints[get_model_parallel_rank()]
+        checkpoint = torch.load(os.path.join(ckpt_dir, "consolidated.00.pth"), map_location="cpu")
         with open(Path(ckpt_dir) / "params.json", "r") as f:
             params = json.loads(f.read())
 
@@ -184,7 +184,7 @@ class Llama:
             )
 
         for cur_pos in range(min_prompt_len, total_len):
-            logits = self.model.forward(tokens[:, prev_pos:cur_pos], prev_pos)
+            logits = self.model.forward(tokens[:, :cur_pos], prev_pos)
             if temperature > 0:
                 probs = torch.softmax(logits[:, -1] / temperature, dim=-1)
                 next_token = sample_top_p(probs, top_p)

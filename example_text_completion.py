@@ -1,7 +1,7 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # This software may be used and distributed according to the terms of the Llama 2 Community License Agreement.
 
-import fire
+# import fire
 
 from llama import Llama
 from typing import List
@@ -66,4 +66,5 @@ def main(
 
 
 if __name__ == "__main__":
-    fire.Fire(main)
+    # fire.Fire(main)
+    main(ckpt_dir="/home/leig/Project/llama2-7b", tokenizer_path="/home/leig/Project/llama2-7b/tokenizer.model")
