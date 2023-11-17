@@ -1,4 +1,4 @@
-change ckpt_dir and tokenizer_path to your local path
+change ckpt_dir and tokenizer_path
 
 ```
 python inference.py
