@@ -1,4 +1,7 @@
+Change ckpt_dir and tokenizer_path
 
 ```
-python example_text_completion.py
+python inference.py
 ```
+
+You can further remove chat_completion related features in generation.py 
