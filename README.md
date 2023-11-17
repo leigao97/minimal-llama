@@ -1,4 +1,5 @@
+change ckpt_dir and tokenizer_path to your local path
 
 ```
-python example_text_completion.py
+python inference.py
 ```
