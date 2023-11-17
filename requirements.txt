@@ -1,4 +1,4 @@
 torch
-fairscale
-fire
+# fairscale
+# fire
 sentencepiece
