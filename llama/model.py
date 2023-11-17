@@ -251,7 +251,7 @@ class Attention(nn.Module):
 
         Args:
             x (torch.Tensor): Input tensor.
-            start_pos (int): Starting position for caching.
+            Removed: start_pos (int): Starting position for caching.
             freqs_cis (torch.Tensor): Precomputed frequency tensor.
             mask (torch.Tensor, optional): Attention mask tensor.
 
