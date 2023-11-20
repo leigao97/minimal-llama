@@ -122,7 +122,7 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer, dat
 
 def train():
     # We will remove HF model
-    model = transformers.AutoModelForCausalLM.from_pretrained("meta-llama/Llama-2-7b-hf")
+    # model = transformers.AutoModelForCausalLM.from_pretrained("meta-llama/Llama-2-7b-hf")
 
     # We will remove HF tokenizer
     tokenizer = transformers.LlamaTokenizer.from_pretrained(
@@ -153,14 +153,14 @@ def train():
     print(tokenizer.decode(train_dataset[0]['input_ids']))
 
     # freeze most of the model param to save memory for debugging purpose
-    for name, param in model.named_parameters():
-        if "lm_head" not in name:
-            param.requires_grad = False
+    # for name, param in model.named_parameters():
+    #     if "lm_head" not in name:
+    #         param.requires_grad = False
 
     # We will remove HF training arguments and trainer
-    training_args = transformers.TrainingArguments(output_dir="/home/leig/Project/llama/output", overwrite_output_dir=True, num_train_epochs=1)
-    trainer = transformers.Trainer(model=model, tokenizer=tokenizer, args=training_args, **data_module)
-    trainer.train()
+    # training_args = transformers.TrainingArguments(output_dir="/home/leig/Project/llama/output", overwrite_output_dir=True, num_train_epochs=1)
+    # trainer = transformers.Trainer(model=model, tokenizer=tokenizer, args=training_args, **data_module)
+    # trainer.train()
 
 if __name__ == "__main__":
     train()
