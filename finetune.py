@@ -126,7 +126,7 @@ def train():
 
     # We will remove HF tokenizer
     tokenizer = transformers.LlamaTokenizer.from_pretrained(
-        "meta-llama/Llama-2-7b-hf",
+        "NousResearch/Llama-2-7b-hf",
         model_max_length=512,
         padding_side="right",
         use_fast=False,
