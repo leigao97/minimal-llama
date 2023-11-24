@@ -19,7 +19,8 @@ class Generation(nn.Module):
         input_text_mask = tokens != tokenizer.pad_id
 
         for cur_pos in range(min_prompt_len, total_len):
-            logits = self(tokens[:, :cur_pos])
+            with torch.no_grad():
+                logits = self(tokens[:, :cur_pos])
             if temperature > 0:
                 probs = torch.softmax(logits[:, -1] / temperature, dim=-1)
                 next_token = self.sample_top_p(probs, top_p)

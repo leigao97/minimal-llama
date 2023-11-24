@@ -11,13 +11,13 @@ def inference():
 
     tokenizer = Tokenizer(tokenizer_path)
 
-    model_args = ModelArgs()
-    model = Llama(model_args)
-
     checkpoint = torch.load(model_path, map_location="cpu")
+    model_args = ModelArgs()
+    torch.set_default_tensor_type(torch.cuda.HalfTensor) # load model in fp16
+    model = Llama(model_args)
     model.load_state_dict(checkpoint, strict=False)
     model.to("cuda")
-
+    
     prompts = [
         # For these prompts, the expected answer is the natural continuation of the prompt
         "I believe the meaning of life is",
@@ -37,8 +37,7 @@ def inference():
     ]
 
     model.eval()
-    with torch.no_grad(): # otherwise model will store all intermediate activations
-        results = model.generate(tokenizer, prompts, max_gen_len=64, temperature=0.6, top_p=0.9)
+    results = model.generate(tokenizer, prompts, max_gen_len=64, temperature=0.6, top_p=0.9)
 
     for prompt, result in zip(prompts, results):
         print(prompt)
