@@ -138,7 +138,7 @@ def train():
     print(f"Trainable params: {trainable_params}")
 
     # prepare optimizer and loss function
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
     criterion = torch.nn.CrossEntropyLoss(ignore_index=-100)
 
     model.train()
