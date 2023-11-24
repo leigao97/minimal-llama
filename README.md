@@ -1,10 +1,10 @@
-Change ckpt_dir and tokenizer_path in `inference.py`
+Change model_path and tokenizer_path in `inference.py`
 
 ```
 python inference.py
 ```
 
-Refer to `finetune.py` and implement your own training code. Change data_path in `finetune.py` and you can run the code to pre-process data.
+Implement LoRA, Gradient Accumulation, Gradient Checkpoint, and Mixed Precision in `finetune.py`
 
 ```
 python finetune.py
