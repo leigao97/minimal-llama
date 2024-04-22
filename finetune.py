@@ -110,9 +110,9 @@ def train():
 
     torch.manual_seed(1)
 
-    model_path = "/home/leig/Project/llama2-7b/consolidated.00.pth"
-    tokenizer_path = "/home/leig/Project/llama2-7b/tokenizer.model"
-    data_path = "/home/leig/Project/llama/alpaca_data_dummy.json"
+    model_path = "../llama2-7b/consolidated.00.pth"
+    tokenizer_path = "../llama2-7b/tokenizer.model"
+    data_path = "alpaca_data_dummy.json"
 
     # load model
     checkpoint = torch.load(model_path, map_location="cpu")
@@ -140,7 +140,7 @@ def train():
 
     # prepare optimizer and loss function
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
-    criterion = torch.nn.CrossEntropyLoss(ignore_index=-100)
+    criterion = torch.nn.CrossEntropyLoss(ignore_index=IGNORE_INDEX)
 
     model.train()
     for epoch in range(5):
