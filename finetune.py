@@ -110,9 +110,9 @@ def train():
 
     torch.manual_seed(1)
 
-    model_path = "../llama2-7b/consolidated.00.pth"
-    tokenizer_path = "../llama2-7b/tokenizer.model"
-    data_path = "alpaca_data_dummy.json"
+    model_path = "/project/saifhash_1190/llama2-7b/consolidated.00.pth"
+    tokenizer_path = "/project/saifhash_1190/llama2-7b/tokenizer.model"
+    data_path = "/project/saifhash_1190/llama2-7b/alpaca_data_dummy.json"
 
     # load model
     checkpoint = torch.load(model_path, map_location="cpu")
@@ -134,7 +134,14 @@ def train():
         collate_fn=data_module["data_collator"],
         shuffle=True,
     )
-
+    
+    # Freeze model parameters other than lora weights
+    # for name, params in model.named_parameters():
+    #     if "lora_" in name:
+    #         params.requires_grad = True
+    #     else:
+    #         params.requires_grad = False
+    
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Trainable params: {trainable_params}")
 
