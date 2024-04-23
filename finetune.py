@@ -143,7 +143,12 @@ def train():
     #         params.requires_grad = False
     
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Trainable params: {trainable_params}")
+    all_params = sum(p.numel() for p in model.parameters())
+    print(
+        f"trainable params: {trainable_params:,d} || "
+        f"all params: {all_params:,d} || "
+        f"trainable%: {100 * trainable_params / all_params:.2f}"
+    )
 
     # prepare optimizer and loss function
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
