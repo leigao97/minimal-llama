@@ -111,9 +111,15 @@ def make_supervised_data_module(tokenizer, data_path):
 def train():
     torch.manual_seed(1)
 
+<<<<<<< HEAD
     tokenizer_path = "/home/lei/Project/llama2-7b/tokenizer.model"
     model_path = "/home/lei/Project/llama2-7b/consolidated.00.pth"
     data_path = "/home/lei/Project/llama/alpaca_data_200.json"
+=======
+    model_path = "/project/saifhash_1190/llama2-7b/consolidated.00.pth"
+    tokenizer_path = "/project/saifhash_1190/llama2-7b/tokenizer.model"
+    data_path = "/project/saifhash_1190/llama2-7b/alpaca_data_dummy.json"
+>>>>>>> 5b79fcf362e52bcef470812dd5dba6d7c0c39df8
 
     # load model
     checkpoint = torch.load(model_path, map_location="cpu")
@@ -135,6 +141,7 @@ def train():
         collate_fn=data_module["data_collator"],
         shuffle=True,
     )
+<<<<<<< HEAD
 
     # Freeze model parameters other than lora weights
     for name, params in model.named_parameters():
@@ -143,6 +150,16 @@ def train():
         else:
             params.requires_grad = False
 
+=======
+    
+    # Freeze model parameters other than lora weights
+    # for name, params in model.named_parameters():
+    #     if "lora_" in name:
+    #         params.requires_grad = True
+    #     else:
+    #         params.requires_grad = False
+    
+>>>>>>> 5b79fcf362e52bcef470812dd5dba6d7c0c39df8
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     all_params = sum(p.numel() for p in model.parameters())
     print(
@@ -153,7 +170,7 @@ def train():
 
     # prepare optimizer and loss function
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
-    criterion = torch.nn.CrossEntropyLoss(ignore_index=-100)
+    criterion = torch.nn.CrossEntropyLoss(ignore_index=IGNORE_INDEX)
 
     model.train()
     scaler = torch.cuda.amp.GradScaler()
