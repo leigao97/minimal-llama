@@ -10,6 +10,8 @@ import torch.nn.functional as F
 from torch import nn
 
 from llama.generation import Generation
+from llama.lora import Linear as LoRALinear
+import torch.utils.checkpoint
 
 
 @dataclass
@@ -21,10 +23,10 @@ class ModelArgs:
     vocab_size: int = 32000  # defined later by tokenizer
     multiple_of: int = 256  # make SwiGLU hidden layer size multiple of large power of 2
     ffn_dim_multiplier: Optional[float] = None
-    norm_eps: float = 1e-6
+    norm_eps: float = 1e-5
 
-    max_batch_size: int = 32
-    max_seq_len: int = 2048
+    max_batch_size: int = 4
+    max_seq_len: int = 256
 
 
 class RMSNorm(torch.nn.Module):
@@ -191,9 +193,11 @@ class Attention(nn.Module):
         self.n_rep = self.n_local_heads // self.n_local_kv_heads
         self.head_dim = args.dim // args.n_heads
 
-        self.wq = nn.Linear(args.dim, args.n_heads * self.head_dim, bias=False)
+        # self.wq = nn.Linear(args.dim, args.n_heads * self.head_dim, bias=False)
+        self.wq = LoRALinear(args.dim, self.n_kv_heads * self.head_dim, r=16, lora_alpha=32, bias=False)
         self.wk = nn.Linear(args.dim, self.n_kv_heads * self.head_dim, bias=False)
-        self.wv = nn.Linear(args.dim, self.n_kv_heads * self.head_dim, bias=False)
+        # self.wv = nn.Linear(args.dim, self.n_kv_heads * self.head_dim, bias=False)
+        self.wv = LoRALinear(args.dim, self.n_kv_heads * self.head_dim, r=16, lora_alpha=32, bias=False)
         self.wo = nn.Linear(args.n_heads * self.head_dim, args.dim, bias=False)
 
     def forward(
@@ -381,7 +385,7 @@ class Llama(Generation):
             self.params.dim // self.params.n_heads, self.params.max_seq_len * 2
         )
 
-    def forward(self, tokens: torch.Tensor):
+    def forward(self, tokens: torch.Tensor, start_pos = 0):
         """
         Perform a forward pass through the Transformer model.
 
@@ -408,6 +412,7 @@ class Llama(Generation):
 
         for layer in self.layers:
             h = layer(h, freqs_cis, mask)
+            # h = torch.utils.checkpoint.checkpoint(layer, h, freqs_cis, mask, use_reentrant=False)
         h = self.norm(h)
         output = self.output(h).float()
         return output

@@ -6,16 +6,18 @@ import torch
 def inference():
     torch.manual_seed(1)
 
-    tokenizer_path = "/home/leig/Project/llama2-7b/tokenizer.model"
-    model_path = "/home/leig/Project/llama2-7b/consolidated.00.pth"
+    tokenizer_path = "/home/lei/Project/llama2-7b/tokenizer.model"
+    model_path = "/home/lei/Project/llama2-7b/consolidated.00.pth"
 
     tokenizer = Tokenizer(tokenizer_path)
 
     checkpoint = torch.load(model_path, map_location="cpu")
     model_args = ModelArgs()
     torch.set_default_tensor_type(torch.cuda.HalfTensor) # load model in fp16
-    model = Llama(model_args)
+    model = Llama(model_args) #-->lora
     model.load_state_dict(checkpoint, strict=False)
+    # model.load_state_dict(torch.load("lora_weights.pth", map_location="cpu"), strict=False)
+
     model.to("cuda")
     
     prompts = [
@@ -34,10 +36,11 @@ def inference():
         peppermint => menthe poivrée
         plush girafe => girafe peluche
         cheese =>""",
+        "Give three tips for staying healthy.",
     ]
 
     model.eval()
-    results = model.generate(tokenizer, prompts, max_gen_len=64, temperature=0.6, top_p=0.9)
+    results = model.generate(tokenizer, prompts, max_gen_len=128, temperature=0.6, top_p=0.9)
 
     for prompt, result in zip(prompts, results):
         print(prompt)

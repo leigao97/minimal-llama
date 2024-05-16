@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from llama.tokenizer import Tokenizer
 from llama.model import ModelArgs, Llama
 
+import time
+
 IGNORE_INDEX = -100
 
 PROMPT_DICT = {
@@ -107,17 +109,16 @@ def make_supervised_data_module(tokenizer, data_path):
 
 
 def train():
-
     torch.manual_seed(1)
 
-    model_path = "/home/leig/Project/llama2-7b/consolidated.00.pth"
-    tokenizer_path = "/home/leig/Project/llama2-7b/tokenizer.model"
-    data_path = "/home/leig/Project/llama/alpaca_data_dummy.json"
+    tokenizer_path = "/home/lei/Project/llama2-7b/tokenizer.model"
+    model_path = "/home/lei/Project/llama2-7b/consolidated.00.pth"
+    data_path = "/home/lei/Project/llama/alpaca_data_200.json"
 
     # load model
     checkpoint = torch.load(model_path, map_location="cpu")
     model_args = ModelArgs()
-    model_args.n_layers = 1  # for debugging purposes we only use 1 layer
+    model_args.n_layers = 32  # for debugging purposes we only use 1 layer
     # torch.set_default_tensor_type(torch.cuda.HalfTensor) # for training we use fp32 weights
     model = Llama(model_args)
     model.load_state_dict(checkpoint, strict=False)
@@ -135,33 +136,63 @@ def train():
         shuffle=True,
     )
 
+    # Freeze model parameters other than lora weights
+    for name, params in model.named_parameters():
+        if "lora_" in name:
+            params.requires_grad = True
+        else:
+            params.requires_grad = False
+
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Trainable params: {trainable_params}")
+    all_params = sum(p.numel() for p in model.parameters())
+    print(
+        f"trainable params: {trainable_params:,d} || "
+        f"all params: {all_params:,d} || "
+        f"trainable%: {100 * trainable_params / all_params:.2f}"
+    )
 
     # prepare optimizer and loss function
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
     criterion = torch.nn.CrossEntropyLoss(ignore_index=-100)
 
     model.train()
+    scaler = torch.cuda.amp.GradScaler()
+
+    iters_to_accumulate = 8
+
+    start = time.time()
     for epoch in range(5):
-        for batch in dataloader:
+        for i, batch in enumerate(dataloader):
             input_ids = batch['input_ids'].to("cuda")
             labels = batch['labels'].to("cuda")
 
-            logits = model(input_ids)
+            with torch.cuda.amp.autocast(dtype=torch.float16):
+                logits = model(input_ids)
 
-            shift_logits = logits[..., :-1, :].contiguous()
-            shift_labels = labels[..., 1:].contiguous()
-            shift_logits = shift_logits.view(-1, 32000)
-            shift_labels = shift_labels.view(-1)
+                shift_logits = logits[..., :-1, :].contiguous()
+                shift_labels = labels[..., 1:].contiguous()
+                shift_logits = shift_logits.view(-1, 32000)
+                shift_labels = shift_labels.view(-1)
 
-            loss = criterion(shift_logits, shift_labels)
-            loss.backward()
-            optimizer.step()
-            optimizer.zero_grad()
+                loss = criterion(shift_logits, shift_labels)
 
-            print(loss.item())
+                loss = loss / iters_to_accumulate
+            
+            scaler.scale(loss).backward()
+            if (i + 1) % iters_to_accumulate == 0:
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad()
 
+            if (i+1) % 50 == 0:
+                print(loss.item())
+
+    end = time.time()
+    print(f"Time: {end - start}")
+    # torch.save(model.state_dict(), "finetuned.pth")
+    model_weights = model.state_dict()
+    lora_weights = {k: v for k, v in model_weights.items() if "lora_" in k}
+    torch.save(lora_weights, "lora_weights.pth")
 
 if __name__ == "__main__":
     train()
