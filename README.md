@@ -1,4 +1,4 @@
-# Minimal code for Llama2 inference and LoRA finetuning
+# Minimal Implementation for Llama2 Inference and LoRA Fine-Tuning
 
 This repository provides a simple and minimal implementation for performing inference and Low-Rank Adaptation (LoRA) fine-tuning on Llama2 models. It is designed with minimal dependencies to provide a straightforward setup, ideal for learning and understanding the end-to-end process of working with LLMs.
 
