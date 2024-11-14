@@ -1,33 +1,23 @@
+import argparse
 from llama.tokenizer import Tokenizer
 from llama.model import ModelArgs, Llama
 import torch
 
 
-def inference():
+def inference(args):
     torch.manual_seed(1)
 
-<<<<<<< HEAD
-    tokenizer_path = "/home/lei/Project/llama2-7b/tokenizer.model"
-    model_path = "/home/lei/Project/llama2-7b/consolidated.00.pth"
+    tokenizer = Tokenizer(args.tokenizer_path)
 
-=======
-    tokenizer_path = "/data/leig/llama2-7b/tokenizer.model"
-    model_path = "/data/leig/llama2-7b/consolidated.00.pth"
-    
->>>>>>> 5b79fcf362e52bcef470812dd5dba6d7c0c39df8
-    tokenizer = Tokenizer(tokenizer_path)
-
-    checkpoint = torch.load(model_path, map_location="cpu")
+    checkpoint = torch.load(args.model_path, map_location="cpu", weights_only=True)
     model_args = ModelArgs()
-    torch.set_default_tensor_type(torch.cuda.HalfTensor) # load model in fp16
-    model = Llama(model_args) #-->lora
+    model = Llama(model_args)
+    model.half() # Run inference in FP16
     model.load_state_dict(checkpoint, strict=False)
-    # model.load_state_dict(torch.load("lora_weights.pth", map_location="cpu"), strict=False)
 
     model.to("cuda")
-    
+
     prompts = [
-        # For these prompts, the expected answer is the natural continuation of the prompt
         "I believe the meaning of life is",
         "Simply put, the theory of relativity states that ",
         """A brief message congratulating the team on the launch:
@@ -35,24 +25,29 @@ def inference():
         Hi everyone,
         
         I just """,
-        # Few shot prompt (providing a few examples before asking model to complete more);
         """Translate English to French:
         
         sea otter => loutre de mer
         peppermint => menthe poivrée
         plush girafe => girafe peluche
         cheese =>""",
-        "Give three tips for staying healthy.",
     ]
 
+    prompt_tokens = [tokenizer.encode(x, bos=True, eos=False) for x in prompts]
+
     model.eval()
-    results = model.generate(tokenizer, prompts, max_gen_len=128, temperature=0.6, top_p=0.9)
+    results = model.generate(tokenizer, prompt_tokens, max_gen_len=128, temperature=0.7, top_p=0.9)
 
     for prompt, result in zip(prompts, results):
         print(prompt)
         print(f"> {result['generation']}")
         print("\n==================================\n")
 
-    
+
 if __name__ == "__main__":
-    inference()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--tokenizer_path", type=str, required=True, help="Path to the tokenizer model.")
+    parser.add_argument("--model_path", type=str, required=True, help="Path to the model checkpoint.")
+
+    args = parser.parse_args()
+    inference(args)

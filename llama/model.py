@@ -26,11 +26,7 @@ class ModelArgs:
     norm_eps: float = 1e-5
 
     max_batch_size: int = 4
-<<<<<<< HEAD
     max_seq_len: int = 256
-=======
-    max_seq_len: int = 128
->>>>>>> 5b79fcf362e52bcef470812dd5dba6d7c0c39df8
 
 
 class RMSNorm(torch.nn.Module):

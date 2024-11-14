@@ -1,6 +1,8 @@
+import argparse
 import copy
 import json
 import logging
+import time
 
 import torch
 from torch.utils.data import Dataset
@@ -8,8 +10,6 @@ from dataclasses import dataclass
 
 from llama.tokenizer import Tokenizer
 from llama.model import ModelArgs, Llama
-
-import time
 
 IGNORE_INDEX = -100
 
@@ -28,7 +28,6 @@ PROMPT_DICT = {
 
 
 def _tokenize_fn(strings, tokenizer):
-    """Tokenize a list of strings."""
     tokenized_list = [
         torch.tensor(tokenizer.encode(text, bos=True, eos=True)) for text in strings
     ]
@@ -45,7 +44,6 @@ def _tokenize_fn(strings, tokenizer):
 
 
 def preprocess(sources, targets, tokenizer):
-    """Preprocess the data by tokenizing."""
     examples = [s + t for s, t in zip(sources, targets)]
     examples_tokenized, sources_tokenized = [_tokenize_fn(strings, tokenizer) for strings in (examples, sources)]
     input_ids = examples_tokenized["input_ids"]
@@ -56,15 +54,13 @@ def preprocess(sources, targets, tokenizer):
 
 
 class SupervisedDataset(Dataset):
-    """Dataset for supervised fine-tuning."""
-
     def __init__(self, data_path, tokenizer):
         super(SupervisedDataset, self).__init__()
-        logging.warning("Loading data...")
+        print("Loading data...")
         with open(data_path, "r") as f:
             list_data_dict = json.load(f)
 
-        logging.warning("Formatting inputs...")
+        print("Formatting inputs...")
         prompt_input, prompt_no_input = PROMPT_DICT["prompt_input"], PROMPT_DICT["prompt_no_input"]
         sources = [
             prompt_input.format_map(example) if example.get("input", "") != "" else prompt_no_input.format_map(example)
@@ -72,7 +68,7 @@ class SupervisedDataset(Dataset):
         ]
         targets = [f"{example['output']}" for example in list_data_dict]
 
-        logging.warning("Tokenizing inputs... This may take some time...")
+        print("Tokenizing inputs... This may take some time...")
         data_dict = preprocess(sources, targets, tokenizer)
 
         self.input_ids = data_dict["input_ids"]
@@ -87,7 +83,6 @@ class SupervisedDataset(Dataset):
 
 @dataclass
 class DataCollatorForSupervisedDataset(object):
-    """Collate examples for supervised fine-tuning."""
     def __call__(self, instances):
         input_ids, labels = tuple([instance[key] for instance in instances] for key in ("input_ids", "labels"))
         input_ids = torch.nn.utils.rnn.pad_sequence(
@@ -102,79 +97,55 @@ class DataCollatorForSupervisedDataset(object):
 
 
 def make_supervised_data_module(tokenizer, data_path):
-    """Make dataset and collator for supervised fine-tuning."""
     train_dataset = SupervisedDataset(tokenizer=tokenizer, data_path=data_path)
     data_collator = DataCollatorForSupervisedDataset()
     return dict(train_dataset=train_dataset, eval_dataset=None, data_collator=data_collator)
 
 
-def train():
+def train(args):
     torch.manual_seed(1)
 
-<<<<<<< HEAD
-    tokenizer_path = "/home/lei/Project/llama2-7b/tokenizer.model"
-    model_path = "/home/lei/Project/llama2-7b/consolidated.00.pth"
-    data_path = "/home/lei/Project/llama/alpaca_data_200.json"
-=======
-    model_path = "/project/saifhash_1190/llama2-7b/consolidated.00.pth"
-    tokenizer_path = "/project/saifhash_1190/llama2-7b/tokenizer.model"
-    data_path = "/project/saifhash_1190/llama2-7b/alpaca_data_dummy.json"
->>>>>>> 5b79fcf362e52bcef470812dd5dba6d7c0c39df8
-
-    # load model
-    checkpoint = torch.load(model_path, map_location="cpu")
+    # Load model
+    checkpoint = torch.load(args.model_path, map_location="cpu", weights_only=True)
     model_args = ModelArgs()
-    model_args.n_layers = 32  # for debugging purposes we only use 1 layer
-    # torch.set_default_tensor_type(torch.cuda.HalfTensor) # for training we use fp32 weights
+    model_args.n_layers = 32  # Example setting
     model = Llama(model_args)
     model.load_state_dict(checkpoint, strict=False)
     model.to("cuda")
 
-    # load tokenizer
-    tokenizer = Tokenizer(tokenizer_path)
-
-    # create dataloader
-    data_module = make_supervised_data_module(tokenizer=tokenizer, data_path=data_path)
-    dataloader = torch.utils.data.DataLoader(
-        data_module["train_dataset"],
-        batch_size=1,
-        collate_fn=data_module["data_collator"],
-        shuffle=True,
-    )
-<<<<<<< HEAD
-
-    # Freeze model parameters other than lora weights
+    # Freeze all layers except the LoRA layers
     for name, params in model.named_parameters():
         if "lora_" in name:
             params.requires_grad = True
         else:
             params.requires_grad = False
 
-=======
-    
-    # Freeze model parameters other than lora weights
-    # for name, params in model.named_parameters():
-    #     if "lora_" in name:
-    #         params.requires_grad = True
-    #     else:
-    #         params.requires_grad = False
-    
->>>>>>> 5b79fcf362e52bcef470812dd5dba6d7c0c39df8
+    # Load tokenizer
+    tokenizer = Tokenizer(args.tokenizer_path)
+
+    # Create dataloader
+    data_module = make_supervised_data_module(tokenizer=tokenizer, data_path=args.data_path)
+    dataloader = torch.utils.data.DataLoader(
+        data_module["train_dataset"],
+        batch_size=1,
+        collate_fn=data_module["data_collator"],
+        shuffle=True,
+    )
+
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     all_params = sum(p.numel() for p in model.parameters())
     print(
-        f"trainable params: {trainable_params:,d} || "
-        f"all params: {all_params:,d} || "
-        f"trainable%: {100 * trainable_params / all_params:.2f}"
+        f"Trainable params: {trainable_params:,d} || "
+        f"All params: {all_params:,d} || "
+        f"Trainable%: {100 * trainable_params / all_params:.2f}"
     )
 
-    # prepare optimizer and loss function
+    # Prepare optimizer and loss function
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
     criterion = torch.nn.CrossEntropyLoss(ignore_index=IGNORE_INDEX)
 
     model.train()
-    scaler = torch.cuda.amp.GradScaler()
-
+    scaler = torch.amp.GradScaler('cuda')
     iters_to_accumulate = 8
 
     start = time.time()
@@ -183,33 +154,38 @@ def train():
             input_ids = batch['input_ids'].to("cuda")
             labels = batch['labels'].to("cuda")
 
-            with torch.cuda.amp.autocast(dtype=torch.float16):
+            with torch.amp.autocast('cuda', dtype=torch.float16):
                 logits = model(input_ids)
-
                 shift_logits = logits[..., :-1, :].contiguous()
                 shift_labels = labels[..., 1:].contiguous()
                 shift_logits = shift_logits.view(-1, 32000)
                 shift_labels = shift_labels.view(-1)
 
-                loss = criterion(shift_logits, shift_labels)
+                loss = criterion(shift_logits, shift_labels) / iters_to_accumulate
 
-                loss = loss / iters_to_accumulate
-            
             scaler.scale(loss).backward()
             if (i + 1) % iters_to_accumulate == 0:
                 scaler.step(optimizer)
                 scaler.update()
                 optimizer.zero_grad()
 
-            if (i+1) % 50 == 0:
-                print(loss.item())
+            if (i + 1) % 50 == 0:
+                print(f"Loss: {loss.item()}")
 
     end = time.time()
-    print(f"Time: {end - start}")
-    # torch.save(model.state_dict(), "finetuned.pth")
+    print(f"Training Time: {end - start}")
+
+    # Save LoRA weights
     model_weights = model.state_dict()
     lora_weights = {k: v for k, v in model_weights.items() if "lora_" in k}
     torch.save(lora_weights, "lora_weights.pth")
 
+
 if __name__ == "__main__":
-    train()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--tokenizer_path", type=str, required=True, help="Path to the tokenizer model.")
+    parser.add_argument("--model_path", type=str, required=True, help="Path to the model checkpoint.")
+    parser.add_argument("--data_path", type=str, required=True, help="Path to the training data.")
+
+    args = parser.parse_args()
+    train(args)

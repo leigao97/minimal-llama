@@ -3,9 +3,7 @@ from torch import nn
 
 
 class Generation(nn.Module):
-    def generate(self, tokenizer, prompts, max_gen_len, temperature, top_p):
-        prompt_tokens = [tokenizer.encode(x, bos=True, eos=False) for x in prompts]
-
+    def generate(self, tokenizer, prompt_tokens, max_gen_len, temperature, top_p):
         bsz = len(prompt_tokens)
         min_prompt_len = min(len(t) for t in prompt_tokens)
         max_prompt_len = max(len(t) for t in prompt_tokens)

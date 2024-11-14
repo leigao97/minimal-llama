@@ -1,11 +1,29 @@
-Change model_path and tokenizer_path in `inference.py`
+# Minimal code for Llama2 inference and LoRA finetuning
 
+This repository provides a simple and minimal implementation for performing inference and Low-Rank Adaptation (LoRA) fine-tuning on Llama2 models. It is designed with minimal dependencies to provide a straightforward setup, ideal for learning and understanding the end-to-end process of working with LLMs.
+
+### Download Model and Tokenizer
+* [HuggingFace Llama2 Model Weights and Tokenizer](https://huggingface.co/meta-llama/Llama-2-7b/tree/main)
+* [HuggingFace Model Downloading Tutorial](https://huggingface.co/docs/hub/en/models-downloading)
+
+### Install Required Dependencies
 ```
-python inference.py
+pip install torch sentencepiece
 ```
 
-Implement LoRA, Gradient Accumulation, Gradient Checkpoint, and Mixed Precision in `finetune.py`
+### Run Inference
+```
+python inference.py --tokenizer_path /path_to/tokenizer.model --model_path /path_to/consolidated.00.pth
+```
 
+### Run LoRA Fine-tuning
+We use [Alpaca dataset](https://huggingface.co/datasets/tatsu-lab/alpaca) with only 200 samples for quick experimentation. LoRA implmenetation is under the `llama` folder.
 ```
-python finetune.py
+python finetune.py --tokenizer_path /path_to/tokenizer.model --model_path /path_to/consolidated.00.pth --data_path alpaca_data_200_samples.json
 ```
+
+
+### Reference
+* [meta-llama](https://github.com/meta-llama/llama)
+* [stanford-alpaca](https://github.com/tatsu-lab/stanford_alpaca)
+* [microsoft-lora](https://github.com/microsoft/LoRA)
