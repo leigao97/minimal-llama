@@ -1,6 +1,6 @@
 # Minimal Implementation for Llama2 Inference and LoRA Fine-Tuning
 
-This repository provides a simple and minimal implementation for performing inference and Low-Rank Adaptation (LoRA) fine-tuning on Llama2 models. It is designed with minimal dependencies (`torch` and `sentencepiece`) to provide a straightforward setup, ideal for learning and understanding the end-to-end process of working with LLMs.
+This repository provides a simple and minimal implementation for performing inference and Low-Rank Adaptation (LoRA) fine-tuning on Llama2-7B models (need 40GB GPU memory). It is designed with minimal dependencies (only `torch` and `sentencepiece`) to provide a straightforward setup.
 
 ### Download Model and Tokenizer
 * [HuggingFace Llama2 Model Weights and Tokenizer](https://huggingface.co/meta-llama/Llama-2-7b/tree/main)
